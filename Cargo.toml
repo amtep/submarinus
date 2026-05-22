@@ -1,0 +1,19 @@
+[package]
+name = "submarinus"
+version = "0.1.0"
+edition = "2024"
+license = "GPL-3.0-or-later"
+
+[features]
+default = ["dev"]
+dev = ["bevy/dev"]
+
+[dependencies]
+
+[dependencies.bevy]
+version = "0.19.0-rc.2"
+default-features = false
+features = ["2d"]
+
+[profile.dev.package."*"]
+opt-level = 3
