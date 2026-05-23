@@ -2,7 +2,7 @@ use bevy::{
     prelude::*,
     render::render_resource::AsBindGroup,
     shader::ShaderRef,
-    sprite_render::{Material2d, Material2dPlugin},
+    sprite_render::{AlphaMode2d, Material2d, Material2dPlugin},
 };
 
 pub fn plugin(app: &mut App) {
@@ -21,6 +21,10 @@ struct SurfaceMaterial {
 impl Material2d for SurfaceMaterial {
     fn fragment_shader() -> ShaderRef {
         SURFACE_SHADER_PATH.into()
+    }
+
+    fn alpha_mode(&self) -> AlphaMode2d {
+        AlphaMode2d::Blend
     }
 }
 
