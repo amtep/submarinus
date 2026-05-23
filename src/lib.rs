@@ -1,6 +1,7 @@
 use bevy::prelude::*;
 use bevy::window::WindowMode;
 
+mod level;
 mod player;
 
 pub fn app() {
@@ -14,6 +15,7 @@ pub fn app() {
                 ..default()
             }),
             player::plugin,
+            level::plugin,
         ))
         .add_systems(Startup, setup)
         .run();
