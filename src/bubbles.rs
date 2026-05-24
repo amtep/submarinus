@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use rand::RngExt;
 
-use crate::{level::Terrain, random::RandomSource};
+use crate::{constants::SURFACE_Y, level::Terrain, random::RandomSource};
 
 pub fn plugin(app: &mut App) {
     app.add_systems(Startup, setup)
@@ -46,7 +46,7 @@ pub fn add_bubbles(
             Bubble(size),
             Mesh2d(handles.mesh.clone()),
             MeshMaterial2d(handles.color.clone()),
-            Transform::from_xyz(spawn_pos[0], spawn_pos[1], 0.0).with_scale(Vec3::splat(size)),
+            Transform::from_xyz(spawn_pos.x, spawn_pos.y, 0.0).with_scale(Vec3::splat(size)),
         ));
     }
 }
@@ -77,7 +77,7 @@ fn float_bubbles(
         transform.translation.y += BUBBLE_SPEED * dt;
 
         // TODO: make this a collision with surface
-        if transform.translation.y >= 500.0 {
+        if transform.translation.y >= SURFACE_Y {
             commands.entity(entity).despawn();
         }
     }

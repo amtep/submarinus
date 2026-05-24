@@ -2,7 +2,7 @@ use std::f32::consts::PI;
 
 use bevy::prelude::*;
 
-use crate::constants::LEVEL_SPEED;
+use crate::constants::{LEVEL_SPEED, SURFACE_Y};
 
 pub fn plugin(app: &mut App) {
     app.add_systems(Startup, setup)
@@ -11,6 +11,8 @@ pub fn plugin(app: &mut App) {
 
 const HORIZONTAL_SPEED: f32 = 128.0;
 const VERTICAL_SPEED: f32 = 64.0;
+const PLAYER_LEFT_BOUNDARY: f32 = -1000.0;
+const PLAYER_RIGHT_BOUNDARY: f32 = -1000.0;
 
 #[derive(Component, Clone, Default)]
 struct Player;
@@ -41,8 +43,8 @@ fn keys(
 
     if buttons.pressed(KeyCode::KeyW) || buttons.pressed(KeyCode::ArrowUp) {
         transform.translation.y += VERTICAL_SPEED * dt;
-        if transform.translation.y > 500.0 {
-            transform.translation.y = 500.0;
+        if transform.translation.y > SURFACE_Y {
+            transform.translation.y = SURFACE_Y;
         }
     }
     if buttons.pressed(KeyCode::KeyS) || buttons.pressed(KeyCode::ArrowDown) {
@@ -53,14 +55,14 @@ fn keys(
     }
     if buttons.pressed(KeyCode::KeyA) || buttons.pressed(KeyCode::ArrowLeft) {
         transform.translation.x -= HORIZONTAL_SPEED * dt;
-        if transform.translation.x < -1000.0 {
-            transform.translation.x = -1000.0;
+        if transform.translation.x < PLAYER_LEFT_BOUNDARY {
+            transform.translation.x = PLAYER_LEFT_BOUNDARY;
         }
     }
     if buttons.pressed(KeyCode::KeyD) || buttons.pressed(KeyCode::ArrowRight) {
         transform.translation.x += HORIZONTAL_SPEED * dt;
-        if transform.translation.x > 0.0 {
-            transform.translation.x = 0.0;
+        if transform.translation.x > PLAYER_RIGHT_BOUNDARY {
+            transform.translation.x = PLAYER_RIGHT_BOUNDARY;
         }
     }
 
@@ -75,7 +77,7 @@ fn keys(
 
     // Also move with the level speed
     transform.translation.x -= LEVEL_SPEED * dt;
-    if transform.translation.x < -1000.0 {
-        transform.translation.x = -1000.0;
+    if transform.translation.x < PLAYER_LEFT_BOUNDARY {
+        transform.translation.x = PLAYER_LEFT_BOUNDARY;
     }
 }

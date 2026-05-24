@@ -5,7 +5,7 @@ use bevy::{
     sprite_render::{AlphaMode2d, Material2d, Material2dPlugin},
 };
 
-use crate::constants::LEVEL_SPEED;
+use crate::constants::{LEVEL_SPEED, SURFACE_Y};
 
 pub fn plugin(app: &mut App) {
     app.add_plugins(Material2dPlugin::<SurfaceMaterial>::default())
@@ -51,7 +51,7 @@ fn setup(
             Terrain,
             Mesh2d(mesh.clone()),
             MeshMaterial2d(material.clone()),
-            Transform::from_xyz(x as f32 * 100.0, 500.0, 0.0),
+            Transform::from_xyz(x as f32 * 100.0, SURFACE_Y, 0.0),
         ));
     }
 }
