@@ -37,38 +37,40 @@ fn keys(
     time: Res<Time<Fixed>>,
 ) {
     let dt = time.delta_secs();
+    let old_y = transform.translation.y;
 
     if buttons.pressed(KeyCode::KeyW) || buttons.pressed(KeyCode::ArrowUp) {
         transform.translation.y += VERTICAL_SPEED * dt;
         if transform.translation.y > 500.0 {
             transform.translation.y = 500.0;
-        } else {
-            transform.rotation = Quat::from_rotation_z(-PI / 2.0 + 0.05);
         }
     }
     if buttons.pressed(KeyCode::KeyS) || buttons.pressed(KeyCode::ArrowDown) {
         transform.translation.y -= VERTICAL_SPEED * dt;
         if transform.translation.y < -500.0 {
             transform.translation.y = -500.0;
-        } else {
-            transform.rotation = Quat::from_rotation_z(-PI / 2.0 - 0.05);
         }
     }
     if buttons.pressed(KeyCode::KeyA) || buttons.pressed(KeyCode::ArrowLeft) {
         transform.translation.x -= HORIZONTAL_SPEED * dt;
         if transform.translation.x < -1000.0 {
             transform.translation.x = -1000.0;
-        } else {
-            transform.rotation = Quat::from_rotation_z(-PI / 2.0);
         }
     }
     if buttons.pressed(KeyCode::KeyD) || buttons.pressed(KeyCode::ArrowRight) {
         transform.translation.x += HORIZONTAL_SPEED * dt;
         if transform.translation.x > 0.0 {
             transform.translation.x = 0.0;
-        } else {
-            transform.rotation = Quat::from_rotation_z(-PI / 2.0);
         }
+    }
+
+    // Turn the sub up or down depending on vertical movement
+    if transform.translation.y > old_y {
+        transform.rotation = Quat::from_rotation_z(-PI / 2.0 + 0.05);
+    } else if transform.translation.y < old_y {
+        transform.rotation = Quat::from_rotation_z(-PI / 2.0 - 0.05);
+    } else {
+        transform.rotation = Quat::from_rotation_z(-PI / 2.0);
     }
 
     // Also move with the level speed
