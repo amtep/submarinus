@@ -15,7 +15,7 @@ pub fn plugin(app: &mut App) {
 
 /// Marker for entities that should move with the terrain scroll speed
 #[derive(Component, Default, Clone)]
-struct Terrain;
+pub struct Terrain;
 
 const SURFACE_SHADER_PATH: &str = "shaders/surface.wgsl";
 

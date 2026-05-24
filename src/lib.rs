@@ -1,9 +1,11 @@
 use bevy::prelude::*;
 use bevy::window::WindowMode;
 
+mod bubbles;
 mod constants;
 mod level;
 mod player;
+mod random;
 
 pub fn app() {
     App::new()
@@ -15,8 +17,10 @@ pub fn app() {
                 }),
                 ..default()
             }),
+            random::plugin,
             player::plugin,
             level::plugin,
+            bubbles::plugin,
         ))
         .add_systems(Startup, setup)
         .run();
