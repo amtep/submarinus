@@ -12,7 +12,7 @@ pub fn plugin(app: &mut App) {
 const HORIZONTAL_SPEED: f32 = 128.0;
 const VERTICAL_SPEED: f32 = 64.0;
 const PLAYER_LEFT_BOUNDARY: f32 = -1000.0;
-const PLAYER_RIGHT_BOUNDARY: f32 = -1000.0;
+const PLAYER_RIGHT_BOUNDARY: f32 = 0.0;
 
 #[derive(Component, Clone, Default)]
 struct Player;

@@ -5,7 +5,7 @@ const PI: f32 = 3.14159265359;
 @group(#{MATERIAL_BIND_GROUP}) @binding(0) var<uniform> material_color: vec4<f32>;
 
 fn plot(in: vec2f) -> f32 {
-    return smoothstep(0.4, 0.0, abs((in.y - 0.5) * 2.0 - sin(in.x * 10 * PI)));
+    return smoothstep(0.4, 0.0, abs((in.y - 0.5) * 2.0 - sin(in.x * PI)));
 }
 
 @fragment
