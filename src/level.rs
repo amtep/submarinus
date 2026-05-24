@@ -5,7 +5,7 @@ use bevy::{
     sprite_render::{AlphaMode2d, Material2d, Material2dPlugin},
 };
 
-use crate::constants::LEVEL_SPEED_PX_PER_SEC;
+use crate::constants::LEVEL_SPEED;
 
 pub fn plugin(app: &mut App) {
     app.add_plugins(Material2dPlugin::<SurfaceMaterial>::default())
@@ -62,7 +62,7 @@ fn move_level(
     time: Res<Time<Fixed>>,
 ) {
     for (entity, mut transform) in &mut q {
-        transform.translation.x -= LEVEL_SPEED_PX_PER_SEC * time.delta_secs();
+        transform.translation.x -= LEVEL_SPEED * time.delta_secs();
         // If the x is offscreen with a generous margin, despawn it
         if transform.translation.x < -1280.0 - 200.0 {
             commands.entity(entity).despawn();

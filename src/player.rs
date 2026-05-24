@@ -2,7 +2,7 @@ use std::f32::consts::PI;
 
 use bevy::prelude::*;
 
-use crate::constants::LEVEL_SPEED_PX_PER_SEC;
+use crate::constants::LEVEL_SPEED;
 
 pub fn plugin(app: &mut App) {
     app.add_systems(Startup, setup)
@@ -74,7 +74,7 @@ fn keys(
     }
 
     // Also move with the level speed
-    transform.translation.x -= LEVEL_SPEED_PX_PER_SEC * dt;
+    transform.translation.x -= LEVEL_SPEED * dt;
     if transform.translation.x < -1000.0 {
         transform.translation.x = -1000.0;
     }
