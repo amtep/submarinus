@@ -1,7 +1,10 @@
 use bevy::prelude::*;
 use rand::RngExt;
 
-use crate::{constants::SURFACE_Y, level::Terrain, random::RandomSource};
+use crate::{
+    level::{Surface, Terrain},
+    random::RandomSource,
+};
 
 pub fn plugin(app: &mut App) {
     app.add_systems(Startup, setup)
@@ -54,7 +57,8 @@ pub fn add_bubbles(
 fn float_bubbles(
     mut commands: Commands,
     mut rng: ResMut<RandomSource>,
-    mut q: Populated<(Entity, &mut Bubble, &mut Transform)>,
+    mut q: Populated<(Entity, &mut Bubble, &mut Transform), Without<Surface>>,
+    surfaces: Query<&Transform, With<Surface>>,
     time: Res<Time<Fixed>>,
 ) {
     let dt = time.delta_secs();
@@ -76,9 +80,16 @@ fn float_bubbles(
         // Bubble up
         transform.translation.y += BUBBLE_SPEED * dt;
 
-        // TODO: make this a collision with surface
-        if transform.translation.y >= SURFACE_Y {
-            commands.entity(entity).despawn();
+        // Pop when breaking air
+        for surface in surfaces {
+            let bounds = (surface.translation.x - surface.scale.x / 2.0)
+                ..=(surface.translation.x + surface.scale.x / 2.0);
+            if bounds.contains(&transform.translation.x)
+                && transform.translation.y >= surface.translation.y
+            {
+                commands.entity(entity).despawn();
+                break;
+            }
         }
     }
 }

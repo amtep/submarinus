@@ -17,6 +17,10 @@ pub fn plugin(app: &mut App) {
 #[derive(Component, Default, Clone)]
 pub struct Terrain;
 
+/// Marker for water-air boundary
+#[derive(Component, Default, Clone)]
+pub struct Surface;
+
 const SURFACE_SHADER_PATH: &str = "shaders/surface.wgsl";
 
 #[derive(Asset, TypePath, AsBindGroup, Debug, Clone)]
@@ -40,8 +44,7 @@ fn setup(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<SurfaceMaterial>>,
 ) {
-    // Do the surface as a series of 100px segments
-    let mesh = meshes.add(Rectangle::from_size(Vec2 { x: 100.0, y: 10.0 }));
+    let mesh = meshes.add(Rectangle::default());
     let material = materials.add(SurfaceMaterial {
         color: LinearRgba::BLUE,
     });
@@ -49,9 +52,11 @@ fn setup(
     for x in -13..=13 {
         commands.spawn((
             Terrain,
+            Surface,
             Mesh2d(mesh.clone()),
             MeshMaterial2d(material.clone()),
-            Transform::from_xyz(x as f32 * 100.0, SURFACE_Y, 0.0),
+            Transform::from_xyz(x as f32 * 100.0, SURFACE_Y, 0.0)
+                .with_scale(Vec3::new(100.0, 10.0, 1.0)),
         ));
     }
 }
