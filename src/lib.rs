@@ -1,6 +1,7 @@
 use bevy::prelude::*;
 use bevy::window::WindowMode;
 
+mod constants;
 mod level;
 mod player;
 

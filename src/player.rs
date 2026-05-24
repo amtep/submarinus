@@ -2,6 +2,8 @@ use std::f32::consts::PI;
 
 use bevy::prelude::*;
 
+use crate::constants::LEVEL_SPEED_PX_PER_SEC;
+
 pub fn plugin(app: &mut App) {
     app.add_systems(Startup, setup)
         .add_systems(FixedUpdate, keys);
@@ -67,5 +69,11 @@ fn keys(
         } else {
             transform.rotation = Quat::from_rotation_z(-PI / 2.0);
         }
+    }
+
+    // Also move with the level speed
+    transform.translation.x -= LEVEL_SPEED_PX_PER_SEC * dt;
+    if transform.translation.x < -1000.0 {
+        transform.translation.x = -1000.0;
     }
 }

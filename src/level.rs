@@ -5,10 +5,17 @@ use bevy::{
     sprite_render::{AlphaMode2d, Material2d, Material2dPlugin},
 };
 
+use crate::constants::LEVEL_SPEED_PX_PER_SEC;
+
 pub fn plugin(app: &mut App) {
     app.add_plugins(Material2dPlugin::<SurfaceMaterial>::default())
-        .add_systems(Startup, setup);
+        .add_systems(Startup, setup)
+        .add_systems(FixedUpdate, move_level);
 }
+
+/// Marker for entities that should move with the terrain scroll speed
+#[derive(Component, Default, Clone)]
+struct Terrain;
 
 const SURFACE_SHADER_PATH: &str = "shaders/surface.wgsl";
 
@@ -41,9 +48,24 @@ fn setup(
 
     for x in -13..=13 {
         commands.spawn((
+            Terrain,
             Mesh2d(mesh.clone()),
             MeshMaterial2d(material.clone()),
             Transform::from_xyz(x as f32 * 100.0, 500.0, 0.0),
         ));
+    }
+}
+
+fn move_level(
+    mut commands: Commands,
+    mut q: Query<(Entity, &mut Transform), With<Terrain>>,
+    time: Res<Time<Fixed>>,
+) {
+    for (entity, mut transform) in &mut q {
+        transform.translation.x -= LEVEL_SPEED_PX_PER_SEC * time.delta_secs();
+        // If the x is offscreen with a generous margin, despawn it
+        if transform.translation.x < -1280.0 - 200.0 {
+            commands.entity(entity).despawn();
+        }
     }
 }
