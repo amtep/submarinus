@@ -24,6 +24,8 @@ const COLOR_AIR: [u8; 4] = [0x74, 0xb9, 0xde, 0xff];
 struct LevelHandles {
     level: Handle<Image>,
     rectangle_mesh: Handle<Mesh>,
+    triangle_lr_mesh: Handle<Mesh>,
+    triangle_ll_mesh: Handle<Mesh>,
     surface_material: Handle<SurfaceMaterial>,
     rock_material: Handle<ColorMaterial>,
 }
@@ -66,6 +68,12 @@ fn setup(
     asset_server: ResMut<AssetServer>,
 ) {
     let rectangle_mesh = meshes.add(Rectangle::default());
+    let ll = Vec2::new(-0.5, -0.5);
+    let lr = Vec2::new(0.5, -0.5);
+    let ul = Vec2::new(-0.5, 0.5);
+    let ur = Vec2::new(0.5, 0.5);
+    let triangle_ll_mesh = meshes.add(Triangle2d::new(ll, ul, lr));
+    let triangle_lr_mesh = meshes.add(Triangle2d::new(lr, ll, ur));
     let surface_material = materials1.add(SurfaceMaterial {
         color: LinearRgba::BLUE,
     });
@@ -74,6 +82,8 @@ fn setup(
     commands.insert_resource(LevelHandles {
         level,
         rectangle_mesh,
+        triangle_ll_mesh,
+        triangle_lr_mesh,
         surface_material,
         rock_material,
     });
@@ -97,17 +107,48 @@ fn load(
         let translate_x = (x as f32 - 40.0) * 32.0;
         for y in 0..image.height() {
             let translate_y = (22.5 - y as f32) * 32.0;
-            let bytes = image.pixel_bytes(UVec3::new(x, y, 0)).unwrap();
-            if bytes == COLOR_WATER && prev_color == COLOR_AIR {
-                commands.spawn((
-                    Terrain,
-                    Surface,
-                    Mesh2d(handles.rectangle_mesh.clone()),
-                    MeshMaterial2d(handles.surface_material.clone()),
-                    Transform::from_xyz(translate_x, translate_y + 16.0, 0.0)
-                        .with_scale(Vec3::new(32.0, 16.0, 1.0)),
-                ));
-            } else if bytes == COLOR_ROCK {
+            let color = image.pixel_bytes(UVec3::new(x, y, 0)).unwrap();
+            let maybe_next = image.pixel_bytes(UVec3::new(x, y + 1, 0)).ok();
+            let maybe_prev_column = if x == 0 {
+                None
+            } else {
+                image.pixel_bytes(UVec3::new(x - 1, y, 0)).ok()
+            };
+            let maybe_next_column = image.pixel_bytes(UVec3::new(x + 1, y, 0)).ok();
+            if color == COLOR_WATER {
+                if prev_color == COLOR_AIR {
+                    commands.spawn((
+                        Terrain,
+                        Surface,
+                        Mesh2d(handles.rectangle_mesh.clone()),
+                        MeshMaterial2d(handles.surface_material.clone()),
+                        Transform::from_xyz(translate_x, translate_y + 16.0, 0.0)
+                            .with_scale(Vec3::new(32.0, 16.0, 1.0)),
+                    ));
+                }
+                if maybe_next.is_some_and(|c| c == COLOR_ROCK) {
+                    if maybe_next_column.is_some_and(|c| c == COLOR_ROCK) {
+                        commands.spawn((
+                            Terrain,
+                            Rock,
+                            Mesh2d(handles.triangle_lr_mesh.clone()),
+                            MeshMaterial2d(handles.rock_material.clone()),
+                            Transform::from_xyz(translate_x, translate_y, 0.0)
+                                .with_scale(Vec3::new(32.0, 32.0, 1.0)),
+                        ));
+                    }
+                    if maybe_prev_column.is_some_and(|c| c == COLOR_ROCK) {
+                        commands.spawn((
+                            Terrain,
+                            Rock,
+                            Mesh2d(handles.triangle_ll_mesh.clone()),
+                            MeshMaterial2d(handles.rock_material.clone()),
+                            Transform::from_xyz(translate_x, translate_y, 0.0)
+                                .with_scale(Vec3::new(32.0, 32.0, 1.0)),
+                        ));
+                    }
+                }
+            } else if color == COLOR_ROCK {
                 commands.spawn((
                     Terrain,
                     Rock,
@@ -117,7 +158,7 @@ fn load(
                         .with_scale(Vec3::new(32.0, 32.0, 1.0)),
                 ));
             }
-            prev_color = bytes;
+            prev_color = color;
         }
     }
 
