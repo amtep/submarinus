@@ -1,35 +1,48 @@
-use std::f32::consts::PI;
+use std::f32::consts::FRAC_PI_2;
 
-use bevy::prelude::*;
+use bevy::{
+    math::bounding::{Aabb2d, Bounded2d, BoundingCircle, BoundingVolume, IntersectsVolume},
+    prelude::*,
+};
 
-use crate::{constants::LEVEL_SPEED, level::Surface};
+use crate::{
+    constants::LEVEL_SPEED,
+    level::{Rock, RockShape, Surface},
+    math::quat_to_rot2,
+};
 
 pub fn plugin(app: &mut App) {
     app.add_systems(Startup, setup)
-        .add_systems(FixedUpdate, keys);
+        .add_systems(FixedUpdate, (keys, collisions));
 }
 
 const HORIZONTAL_SPEED: f32 = 128.0;
 const VERTICAL_SPEED: f32 = 64.0;
 const PLAYER_LEFT_BOUNDARY: f32 = -1000.0;
 const PLAYER_RIGHT_BOUNDARY: f32 = 0.0;
+const PLAYER_INNER_WIDTH: f32 = 50.0;
+const PLAYER_CAPSULE_RADIUS: f32 = 10.0;
 
 #[derive(Component, Clone, Default)]
 struct Player;
+
+#[derive(Component, Clone, Copy, Deref, DerefMut)]
+struct Lives(u8);
 
 fn setup(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
 ) {
-    let shape = meshes.add(Capsule2d::new(10.0, 50.0));
+    let shape = meshes.add(Capsule2d::new(PLAYER_CAPSULE_RADIUS, PLAYER_INNER_WIDTH));
     let color = materials.add(Color::srgba(0.5, 0.5, 0.5, 1.0));
 
     commands.spawn((
         Player,
+        Lives(3),
         Mesh2d(shape),
         MeshMaterial2d(color),
-        Transform::from_xyz(-1000.0, 0.0, 0.0).with_rotation(Quat::from_rotation_z(-PI / 2.0)),
+        Transform::from_xyz(-1000.0, 0.0, 0.0).with_rotation(Quat::from_rotation_z(-FRAC_PI_2)),
     ));
 }
 
@@ -77,16 +90,69 @@ fn keys(
 
     // Turn the sub up or down depending on vertical movement
     if transform.translation.y > old_y {
-        transform.rotation = Quat::from_rotation_z(-PI / 2.0 + 0.05);
+        transform.rotation = Quat::from_rotation_z(-FRAC_PI_2 + 0.05);
     } else if transform.translation.y < old_y {
-        transform.rotation = Quat::from_rotation_z(-PI / 2.0 - 0.05);
+        transform.rotation = Quat::from_rotation_z(-FRAC_PI_2 - 0.05);
     } else {
-        transform.rotation = Quat::from_rotation_z(-PI / 2.0);
+        transform.rotation = Quat::from_rotation_z(-FRAC_PI_2);
     }
 
     // Also move with the level speed
     transform.translation.x -= LEVEL_SPEED * dt;
     if transform.translation.x < PLAYER_LEFT_BOUNDARY {
         transform.translation.x = PLAYER_LEFT_BOUNDARY;
+    }
+}
+
+fn collisions(
+    mut commands: Commands,
+    mut lives: Single<&mut Lives, With<Player>>,
+    transform: Single<&Transform, (With<Player>, Without<Rock>)>,
+    rocks: Query<(Entity, &Transform, &RockShape), With<Rock>>,
+) {
+    let mut hit = false;
+    let transform = transform.into_inner();
+
+    // TODO: account for the slight rotation when the player moves up or down
+    let bounding1 = BoundingCircle::new(
+        Vec2::new(
+            transform.translation.x - PLAYER_INNER_WIDTH / 2.0,
+            transform.translation.y,
+        ),
+        PLAYER_CAPSULE_RADIUS,
+    );
+    let bounding2 = Aabb2d::new(
+        transform.translation.xy(),
+        Vec2::new(PLAYER_INNER_WIDTH / 2.0, PLAYER_CAPSULE_RADIUS),
+    );
+    let bounding3 = BoundingCircle::new(
+        Vec2::new(
+            transform.translation.x + PLAYER_INNER_WIDTH / 2.0,
+            transform.translation.y,
+        ),
+        PLAYER_CAPSULE_RADIUS,
+    );
+
+    let bounding_rough =
+        Capsule2d::new(PLAYER_CAPSULE_RADIUS, PLAYER_INNER_WIDTH).aabb_2d(Isometry2d::new(
+            transform.translation.xy(),
+            quat_to_rot2(&transform.rotation),
+        ));
+
+    for (entity, rock_transform, rock_shape) in rocks {
+        let rock_rough = Rectangle::new(32.0, 32.0).aabb_2d(rock_transform.translation.xy());
+        if bounding_rough.intersects(&rock_rough) {
+            // TODO: exact collision detection
+            hit = true;
+            commands.entity(entity).despawn();
+        }
+    }
+
+    if hit {
+        if ***lives > 0 {
+            ***lives -= 1;
+        } else {
+            // TODO: game over
+        }
     }
 }

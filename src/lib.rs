@@ -4,6 +4,7 @@ use bevy::window::WindowMode;
 mod bubbles;
 mod constants;
 mod level;
+mod math;
 mod player;
 mod random;
 
