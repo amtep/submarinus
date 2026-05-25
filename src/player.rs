@@ -2,7 +2,7 @@ use std::f32::consts::PI;
 
 use bevy::prelude::*;
 
-use crate::constants::{LEVEL_SPEED, SURFACE_Y};
+use crate::{constants::LEVEL_SPEED, level::Surface};
 
 pub fn plugin(app: &mut App) {
     app.add_systems(Startup, setup)
@@ -34,17 +34,26 @@ fn setup(
 }
 
 fn keys(
-    mut transform: Single<&mut Transform, With<Player>>,
+    mut transform: Single<&mut Transform, (With<Player>, Without<Surface>)>,
     buttons: Res<ButtonInput<KeyCode>>,
     time: Res<Time<Fixed>>,
+    surfaces: Query<&Transform, With<Surface>>,
 ) {
     let dt = time.delta_secs();
     let old_y = transform.translation.y;
 
     if buttons.pressed(KeyCode::KeyW) || buttons.pressed(KeyCode::ArrowUp) {
         transform.translation.y += VERTICAL_SPEED * dt;
-        if transform.translation.y > SURFACE_Y {
-            transform.translation.y = SURFACE_Y;
+        for surface in surfaces {
+            if transform.translation.y < surface.translation.y {
+                continue;
+            }
+            let bounds = (surface.translation.x - surface.scale.x / 2.0)
+                ..=(surface.translation.x + surface.scale.x / 2.0);
+            if bounds.contains(&transform.translation.x) {
+                transform.translation.y = surface.translation.y;
+                break;
+            }
         }
     }
     if buttons.pressed(KeyCode::KeyS) || buttons.pressed(KeyCode::ArrowDown) {

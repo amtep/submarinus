@@ -82,11 +82,12 @@ fn float_bubbles(
 
         // Pop when breaking air
         for surface in surfaces {
+            if transform.translation.y < surface.translation.y {
+                continue;
+            }
             let bounds = (surface.translation.x - surface.scale.x / 2.0)
                 ..=(surface.translation.x + surface.scale.x / 2.0);
-            if bounds.contains(&transform.translation.x)
-                && transform.translation.y >= surface.translation.y
-            {
+            if bounds.contains(&transform.translation.x) {
                 commands.entity(entity).despawn();
                 break;
             }
