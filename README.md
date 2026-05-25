@@ -18,7 +18,7 @@ Instructions for Linux
 ```
 git clone https://github.com/amtep/submarinus
 cd submarinus
-cargo run
+cargo run --release
 ```
 
 At this point there's no quit option yet, so you'll have to kill the game with Alt-F4 to quit.
