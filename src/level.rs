@@ -73,7 +73,7 @@ fn setup(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials1: ResMut<Assets<SurfaceMaterial>>,
     mut materials2: ResMut<Assets<ColorMaterial>>,
-    asset_server: ResMut<AssetServer>,
+    asset_server: Res<AssetServer>,
 ) {
     let rectangle_mesh = meshes.add(Rectangle::default());
     let ll = Vec2::new(-0.5, -0.5);

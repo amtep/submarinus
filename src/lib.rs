@@ -7,6 +7,7 @@ mod level;
 mod math;
 mod player;
 mod random;
+mod torpedoes;
 
 pub fn app() {
     App::new()
@@ -22,6 +23,7 @@ pub fn app() {
             player::plugin,
             level::plugin,
             bubbles::plugin,
+            torpedoes::plugin,
         ))
         .add_systems(Startup, setup)
         .run();
