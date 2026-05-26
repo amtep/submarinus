@@ -7,7 +7,7 @@ use bevy::{
 
 use crate::{
     constants::{LEVEL_SPEED, SHOOT_COOLDOWN_SECS},
-    level::{Rock, RockShape, Surface},
+    level::{Rock, Surface},
     math::quat_to_rot2,
     torpedoes::launch_torpedo,
 };
@@ -135,7 +135,7 @@ fn collisions(
     mut commands: Commands,
     mut lives: Single<&mut Lives, With<Player>>,
     transform: Single<&Transform, (With<Player>, Without<Rock>)>,
-    rocks: Query<(Entity, &Transform, &RockShape), With<Rock>>,
+    rocks: Query<(Entity, &Transform), With<Rock>>,
 ) {
     let mut hit = false;
     let transform = transform.into_inner();
@@ -146,7 +146,7 @@ fn collisions(
             quat_to_rot2(&transform.rotation),
         ));
 
-    for (entity, rock_transform, rock_shape) in rocks {
+    for (entity, rock_transform) in rocks {
         let rock_rough = Rectangle::new(32.0, 32.0).aabb_2d(rock_transform.translation.xy());
         if bounding_rough.intersects(&rock_rough) {
             // TODO: exact collision detection

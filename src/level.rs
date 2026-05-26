@@ -42,14 +42,6 @@ pub struct Surface;
 #[derive(Component, Default, Clone)]
 pub struct Rock;
 
-/// Shape of this piece of rock, for collision detection
-#[derive(Component, Copy, Clone)]
-pub enum RockShape {
-    Rectangle,
-    TriangleLL,
-    TriangleLR,
-}
-
 const SURFACE_SHADER_PATH: &str = "shaders/surface.wgsl";
 
 #[derive(Asset, TypePath, AsBindGroup, Debug, Clone)]
@@ -139,7 +131,6 @@ fn load(
                         commands.spawn((
                             Terrain,
                             Rock,
-                            RockShape::TriangleLR,
                             Mesh2d(handles.triangle_lr_mesh.clone()),
                             MeshMaterial2d(handles.rock_material.clone()),
                             Transform::from_xyz(translate_x, translate_y, 0.0)
@@ -150,7 +141,6 @@ fn load(
                         commands.spawn((
                             Terrain,
                             Rock,
-                            RockShape::TriangleLL,
                             Mesh2d(handles.triangle_ll_mesh.clone()),
                             MeshMaterial2d(handles.rock_material.clone()),
                             Transform::from_xyz(translate_x, translate_y, 0.0)
@@ -162,7 +152,6 @@ fn load(
                 commands.spawn((
                     Terrain,
                     Rock,
-                    RockShape::Rectangle,
                     Mesh2d(handles.rectangle_mesh.clone()),
                     MeshMaterial2d(handles.rock_material.clone()),
                     Transform::from_xyz(translate_x, translate_y, 0.0)
