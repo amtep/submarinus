@@ -1,11 +1,20 @@
-use bevy::prelude::*;
+use bevy::{
+    math::bounding::{Bounded2d, IntersectsVolume},
+    prelude::*,
+};
 use rand::RngExt;
 
-use crate::{bubbles::add_bubbles, constants::LEVEL_SPEED, level::Terrain, random::RandomSource};
+use crate::{
+    bubbles::add_bubbles,
+    constants::LEVEL_SPEED,
+    level::{Rock, Terrain},
+    math::{get_triangles2d, quat_to_rot2, triangles2d_overlap},
+    random::RandomSource,
+};
 
 pub fn plugin(app: &mut App) {
     app.add_systems(Startup, setup)
-        .add_systems(FixedUpdate, torpedoes);
+        .add_systems(FixedUpdate, (torpedoes, torpedo_hit));
 }
 
 const TORPEDO_MAX_SPEED: f32 = 200.0;
@@ -79,6 +88,39 @@ fn torpedoes(
         }
         if rng.0.random::<f32>() < TORPEDO_AVG_BUBBLES_PER_SEC * dt {
             commands.run_system_cached_with(add_bubbles, (transform.translation.xy(), 1, 5.0, 2.0));
+        }
+    }
+}
+
+fn torpedo_hit(
+    mut commands: Commands,
+    torpedoes: Query<(Entity, &Transform, &Mesh2d), (With<Torpedo>, Without<Rock>)>,
+    rocks: Query<(Entity, &Transform, &Mesh2d), With<Rock>>,
+    meshes: Res<Assets<Mesh>>,
+) {
+    for (torpedo, transform, mesh2d) in torpedoes {
+        let mut hit = false;
+        let mesh = meshes.get(mesh2d.id()).unwrap();
+        let triangles = get_triangles2d(mesh, transform);
+
+        let bounding_rough = Rectangle::new(10.0, 4.0).aabb_2d(Isometry2d::new(
+            transform.translation.xy(),
+            quat_to_rot2(&transform.rotation),
+        ));
+
+        for (entity, rock_transform, rock_mesh2d) in rocks {
+            let rock_rough = Rectangle::new(32.0, 32.0).aabb_2d(rock_transform.translation.xy());
+            if bounding_rough.intersects(&rock_rough) {
+                let rock_mesh = meshes.get(rock_mesh2d.id()).unwrap();
+                let rock_triangles = get_triangles2d(rock_mesh, rock_transform);
+                if triangles2d_overlap(&triangles, &rock_triangles) {
+                    hit = true;
+                    commands.entity(entity).despawn();
+                }
+            }
+        }
+        if hit {
+            commands.entity(torpedo).despawn();
         }
     }
 }
