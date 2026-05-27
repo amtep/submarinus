@@ -8,7 +8,7 @@ use bevy::{
 use crate::{
     constants::{LEVEL_SPEED, SHOOT_COOLDOWN_SECS},
     level::{Rock, Surface},
-    math::quat_to_rot2,
+    math::{get_triangles2d, quat_to_rot2, triangles2d_overlap},
     torpedoes::launch_torpedo,
 };
 
@@ -134,11 +134,14 @@ fn shoot(
 fn collisions(
     mut commands: Commands,
     mut lives: Single<&mut Lives, With<Player>>,
-    transform: Single<&Transform, (With<Player>, Without<Rock>)>,
-    rocks: Query<(Entity, &Transform), With<Rock>>,
+    transform: Single<(&Transform, &Mesh2d), (With<Player>, Without<Rock>)>,
+    rocks: Query<(Entity, &Transform, &Mesh2d), With<Rock>>,
+    meshes: Res<Assets<Mesh>>,
 ) {
     let mut hit = false;
-    let transform = transform.into_inner();
+    let (transform, mesh2d) = transform.into_inner();
+    let mesh = meshes.get(mesh2d.id()).unwrap();
+    let triangles = get_triangles2d(mesh, transform);
 
     let bounding_rough =
         Capsule2d::new(PLAYER_CAPSULE_RADIUS, PLAYER_INNER_WIDTH).aabb_2d(Isometry2d::new(
@@ -146,12 +149,15 @@ fn collisions(
             quat_to_rot2(&transform.rotation),
         ));
 
-    for (entity, rock_transform) in rocks {
+    for (entity, rock_transform, rock_mesh2d) in rocks {
         let rock_rough = Rectangle::new(32.0, 32.0).aabb_2d(rock_transform.translation.xy());
         if bounding_rough.intersects(&rock_rough) {
-            // TODO: exact collision detection
-            hit = true;
-            commands.entity(entity).despawn();
+            let rock_mesh = meshes.get(rock_mesh2d.id()).unwrap();
+            let rock_triangles = get_triangles2d(rock_mesh, rock_transform);
+            if triangles2d_overlap(&triangles, &rock_triangles) {
+                hit = true;
+                commands.entity(entity).despawn();
+            }
         }
     }
 
