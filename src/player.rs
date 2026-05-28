@@ -14,7 +14,7 @@ use crate::{
 
 pub fn plugin(app: &mut App) {
     app.add_systems(Startup, setup)
-        .add_systems(FixedUpdate, (keys, shoot, collisions));
+        .add_systems(FixedUpdate, (keys, shoot, collisions, show_lives));
 }
 
 const HORIZONTAL_SPEED: f32 = 128.0;
@@ -27,25 +27,36 @@ const PLAYER_CAPSULE_RADIUS: f32 = 10.0;
 #[derive(Resource, Clone, Deref, DerefMut)]
 struct ShootCooldown(Timer);
 
+/// Marker struct for the player submarine
 #[derive(Component, Clone, Default)]
 struct Player;
 
-#[derive(Component, Clone, Copy, Deref, DerefMut)]
+#[derive(Resource)]
+struct PlayerHandles {
+    player_mesh: Handle<Mesh>,
+    player_material: Handle<ColorMaterial>,
+}
+
+#[derive(Resource, Clone, Copy, Deref, DerefMut)]
 struct Lives(u8);
+
+/// Marker for displayed number of lives.
+/// Contains the 1-based index of which life it's representing.
+#[derive(Component, Clone, Copy, Deref, DerefMut)]
+struct Life(u8);
 
 fn setup(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
 ) {
-    let shape = meshes.add(Capsule2d::new(PLAYER_CAPSULE_RADIUS, PLAYER_INNER_WIDTH));
-    let color = materials.add(Color::srgba(0.5, 0.5, 0.5, 1.0));
+    let player_mesh = meshes.add(Capsule2d::new(PLAYER_CAPSULE_RADIUS, PLAYER_INNER_WIDTH));
+    let player_material = materials.add(Color::srgba(0.5, 0.5, 0.5, 1.0));
 
     commands.spawn((
         Player,
-        Lives(3),
-        Mesh2d(shape),
-        MeshMaterial2d(color),
+        Mesh2d(player_mesh.clone()),
+        MeshMaterial2d(player_material.clone()),
         Transform::from_xyz(-1000.0, 0.0, 0.0).with_rotation(Quat::from_rotation_z(-FRAC_PI_2)),
     ));
 
@@ -53,6 +64,13 @@ fn setup(
         SHOOT_COOLDOWN_SECS,
         TimerMode::Once,
     )));
+
+    commands.insert_resource(PlayerHandles {
+        player_mesh,
+        player_material,
+    });
+
+    commands.insert_resource(Lives(3));
 }
 
 fn keys(
@@ -133,7 +151,7 @@ fn shoot(
 
 fn collisions(
     mut commands: Commands,
-    mut lives: Single<&mut Lives, With<Player>>,
+    mut lives: ResMut<Lives>,
     transform: Single<(&Transform, &Mesh2d), (With<Player>, Without<Rock>)>,
     rocks: Query<(Entity, &Transform, &Mesh2d), With<Rock>>,
     meshes: Res<Assets<Mesh>>,
@@ -162,10 +180,38 @@ fn collisions(
     }
 
     if hit {
-        if ***lives > 0 {
-            ***lives -= 1;
+        if **lives > 0 {
+            **lives -= 1;
         } else {
             // TODO: game over
+        }
+    }
+}
+
+fn show_lives(
+    mut commands: Commands,
+    lives: Res<Lives>,
+    handles: Res<PlayerHandles>,
+    q: Query<(Entity, &Life), With<Life>>,
+) {
+    if lives.is_changed() {
+        let count = q.count();
+        for i in (count + 1)..=(**lives as usize) {
+            let x = -1280.0 + 50.0 + (i as f32) * 50.0;
+            let y = 720.0 - 50.0;
+            commands.spawn((
+                Life(i as u8),
+                Mesh2d(handles.player_mesh.clone()),
+                MeshMaterial2d(handles.player_material.clone()),
+                Transform::from_xyz(x, y, 0.1)
+                    .with_scale(Vec3::splat(0.5))
+                    .with_rotation(Quat::from_rotation_z(-FRAC_PI_2)),
+            ));
+        }
+        for (entity, life) in q {
+            if **life > **lives {
+                commands.entity(entity).despawn();
+            }
         }
     }
 }
