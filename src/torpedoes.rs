@@ -1,5 +1,6 @@
 use bevy::{
-    math::bounding::{Bounded2d, IntersectsVolume},
+    camera::primitives::Aabb,
+    math::bounding::{Aabb2d, IntersectsVolume},
     prelude::*,
 };
 use rand::RngExt;
@@ -7,8 +8,9 @@ use rand::RngExt;
 use crate::{
     bubbles::add_bubbles,
     constants::LEVEL_SPEED,
+    enemies::Enemy,
     level::{Rock, Terrain},
-    math::{get_triangles2d, quat_to_rot2, triangles2d_overlap},
+    math::{get_triangles2d, triangles2d_overlap},
     random::RandomSource,
 };
 
@@ -94,25 +96,31 @@ fn torpedoes(
 
 fn torpedo_hit(
     mut commands: Commands,
-    torpedoes: Query<(Entity, &Transform, &Mesh2d), (With<Torpedo>, Without<Rock>)>,
-    rocks: Query<(Entity, &Transform, &Mesh2d), With<Rock>>,
+    torpedoes: Query<
+        (Entity, &Transform, &Mesh2d, &Aabb),
+        (With<Torpedo>, Without<Rock>, Without<Enemy>),
+    >,
+    targets: Query<(Entity, &Transform, &Mesh2d, &Aabb), Or<(With<Rock>, With<Enemy>)>>,
     meshes: Res<Assets<Mesh>>,
 ) {
-    for (torpedo, transform, mesh2d) in torpedoes {
+    for (torpedo, transform, mesh2d, aabb) in torpedoes {
         let mut hit = false;
         let mesh = meshes.get(mesh2d.id()).unwrap();
         let triangles = get_triangles2d(mesh, transform);
 
-        let bounding_rough = Rectangle::new(10.0, 4.0).aabb_2d(Isometry2d::new(
-            transform.translation.xy(),
-            quat_to_rot2(&transform.rotation),
-        ));
+        let bounding_rough = Aabb2d {
+            min: aabb.min().xy(),
+            max: aabb.max().xy(),
+        };
 
-        for (entity, rock_transform, rock_mesh2d) in rocks {
-            let rock_rough = Rectangle::new(32.0, 32.0).aabb_2d(rock_transform.translation.xy());
-            if bounding_rough.intersects(&rock_rough) {
-                let rock_mesh = meshes.get(rock_mesh2d.id()).unwrap();
-                let rock_triangles = get_triangles2d(rock_mesh, rock_transform);
+        for (entity, target_transform, target_mesh2d, target_aabb) in targets {
+            let target_rough = Aabb2d {
+                min: target_aabb.min().xy(),
+                max: target_aabb.max().xy(),
+            };
+            if bounding_rough.intersects(&target_rough) {
+                let rock_mesh = meshes.get(target_mesh2d.id()).unwrap();
+                let rock_triangles = get_triangles2d(rock_mesh, target_transform);
                 if triangles2d_overlap(&triangles, &rock_triangles) {
                     hit = true;
                     commands.entity(entity).despawn();

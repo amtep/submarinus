@@ -3,6 +3,7 @@ use bevy::window::WindowMode;
 
 mod bubbles;
 mod constants;
+mod enemies;
 mod level;
 mod math;
 mod player;
@@ -24,6 +25,7 @@ pub fn app() {
             level::plugin,
             bubbles::plugin,
             torpedoes::plugin,
+            enemies::plugin,
         ))
         .add_systems(Startup, setup)
         .run();

@@ -1,14 +1,16 @@
 use std::f32::consts::FRAC_PI_2;
 
 use bevy::{
-    math::bounding::{Bounded2d, IntersectsVolume},
+    camera::primitives::Aabb,
+    math::bounding::{Aabb2d, IntersectsVolume},
     prelude::*,
 };
 
 use crate::{
     constants::{LEVEL_SPEED, SHOOT_COOLDOWN_SECS},
+    enemies::Enemy,
     level::{Rock, Surface},
-    math::{get_triangles2d, quat_to_rot2, triangles2d_overlap},
+    math::{get_triangles2d, triangles2d_overlap},
     torpedoes::launch_torpedo,
 };
 
@@ -152,27 +154,29 @@ fn shoot(
 fn collisions(
     mut commands: Commands,
     mut lives: ResMut<Lives>,
-    transform: Single<(&Transform, &Mesh2d), (With<Player>, Without<Rock>)>,
-    rocks: Query<(Entity, &Transform, &Mesh2d), With<Rock>>,
+    transform: Single<(&Transform, &Mesh2d, &Aabb), (With<Player>, Without<Rock>, Without<Enemy>)>,
+    dangers: Query<(Entity, &Transform, &Mesh2d, &Aabb), Or<(With<Rock>, With<Enemy>)>>,
     meshes: Res<Assets<Mesh>>,
 ) {
     let mut hit = false;
-    let (transform, mesh2d) = transform.into_inner();
+    let (transform, mesh2d, aabb) = transform.into_inner();
     let mesh = meshes.get(mesh2d.id()).unwrap();
     let triangles = get_triangles2d(mesh, transform);
 
-    let bounding_rough =
-        Capsule2d::new(PLAYER_CAPSULE_RADIUS, PLAYER_INNER_WIDTH).aabb_2d(Isometry2d::new(
-            transform.translation.xy(),
-            quat_to_rot2(&transform.rotation),
-        ));
+    let bounding_rough = Aabb2d {
+        min: aabb.min().xy(),
+        max: aabb.max().xy(),
+    };
 
-    for (entity, rock_transform, rock_mesh2d) in rocks {
-        let rock_rough = Rectangle::new(32.0, 32.0).aabb_2d(rock_transform.translation.xy());
-        if bounding_rough.intersects(&rock_rough) {
-            let rock_mesh = meshes.get(rock_mesh2d.id()).unwrap();
-            let rock_triangles = get_triangles2d(rock_mesh, rock_transform);
-            if triangles2d_overlap(&triangles, &rock_triangles) {
+    for (entity, danger_transform, danger_mesh2d, danger_aabb) in dangers {
+        let danger_rough = Aabb2d {
+            min: danger_aabb.min().xy(),
+            max: danger_aabb.max().xy(),
+        };
+        if bounding_rough.intersects(&danger_rough) {
+            let danger_mesh = meshes.get(danger_mesh2d.id()).unwrap();
+            let danger_triangles = get_triangles2d(danger_mesh, danger_transform);
+            if triangles2d_overlap(&triangles, &danger_triangles) {
                 hit = true;
                 commands.entity(entity).despawn();
             }
