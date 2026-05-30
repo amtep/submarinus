@@ -3,7 +3,11 @@ use std::f32::consts::FRAC_PI_2;
 use bevy::prelude::*;
 use rand::RngExt;
 
-use crate::{level::Sidescroll, random::RandomSource};
+use crate::{
+    colliders::{COLLIDE_LAYER_ENEMY, COLLIDE_LAYER_TERRAIN, CollideLayer, Collided, Collider},
+    level::Sidescroll,
+    random::RandomSource,
+};
 
 pub fn plugin(app: &mut App) {
     app.add_systems(Startup, setup)
@@ -85,6 +89,7 @@ fn load(
                 commands.spawn((
                     Sidescroll,
                     Enemy,
+                    CollideLayer(COLLIDE_LAYER_ENEMY),
                     Ship,
                     Mesh2d(handles.ship_mesh.clone()),
                     MeshMaterial2d(handles.ship_material.clone()),
@@ -110,17 +115,23 @@ fn ships_drop_bombs(
     for transform in ships {
         if rng.random::<f32>() < SHIP_AVG_BOMBS_PER_SEC * dt {
             // TODO: make this sensitive to terrain
-            let explode_depth = rng.random_range(-1000.0..1000.0);
-            commands.spawn((
-                Enemy,
-                DepthBomb(explode_depth),
-                Sidescroll,
-                Mesh2d(handles.bomb_mesh.clone()),
-                MeshMaterial2d(handles.bomb_material.clone()),
-                Transform::from_xyz(transform.translation.x, transform.translation.y, 0.1)
-                    .with_scale(vec3(10.0, 10.0, 1.0))
-                    .with_rotation(Quat::from_rotation_z(FRAC_PI_2 + 0.2)),
-            ));
+            let explode_depth = rng.random_range(-500.0..400.0);
+            commands
+                .spawn((
+                    Enemy,
+                    DepthBomb(explode_depth),
+                    CollideLayer(COLLIDE_LAYER_ENEMY),
+                    Collider(COLLIDE_LAYER_TERRAIN),
+                    Sidescroll,
+                    Mesh2d(handles.bomb_mesh.clone()),
+                    MeshMaterial2d(handles.bomb_material.clone()),
+                    Transform::from_xyz(transform.translation.x, transform.translation.y, 0.1)
+                        .with_scale(vec3(10.0, 10.0, 1.0))
+                        .with_rotation(Quat::from_rotation_z(FRAC_PI_2 + 0.2)),
+                ))
+                .observe(|ev: On<Collided>, mut commands: Commands| {
+                    commands.entity(ev.entity).despawn();
+                });
         }
     }
 }

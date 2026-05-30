@@ -1,22 +1,17 @@
-use bevy::{
-    camera::primitives::Aabb,
-    math::bounding::{Aabb2d, IntersectsVolume},
-    prelude::*,
-};
+use bevy::prelude::*;
 use rand::RngExt;
 
 use crate::{
     bubbles::add_bubbles,
+    colliders::{COLLIDE_LAYER_ENEMY, COLLIDE_LAYER_TERRAIN, Collided, Collider},
     constants::LEVEL_SPEED,
-    enemies::Enemy,
-    level::{Rock, Sidescroll},
-    math::{get_triangles2d, triangles2d_overlap},
+    level::Sidescroll,
     random::RandomSource,
 };
 
 pub fn plugin(app: &mut App) {
     app.add_systems(Startup, setup)
-        .add_systems(FixedUpdate, (torpedoes, torpedo_hit));
+        .add_systems(FixedUpdate, torpedoes);
 }
 
 const TORPEDO_MAX_SPEED: f32 = 200.0;
@@ -58,18 +53,27 @@ pub fn launch_torpedo(In(tip_pos): In<Vec2>, mut commands: Commands, handles: Re
     let mut body_back = body_center;
     body_back.x -= 5.0;
 
-    commands.spawn((
-        Sidescroll,
-        Torpedo(LEVEL_SPEED),
-        Mesh2d(handles.torpedo_body_mesh.clone()),
-        MeshMaterial2d(handles.torpedo_body_material.clone()),
-        Transform::from_translation(body_center.extend(1.0)),
-        children![(
-            Mesh2d(handles.torpedo_tip_mesh.clone()),
-            MeshMaterial2d(handles.torpedo_tip_material.clone()),
-            Transform::from_xyz(5.0, 0.0, -0.1),
-        )],
-    ));
+    commands
+        .spawn((
+            Sidescroll,
+            Collider(COLLIDE_LAYER_ENEMY | COLLIDE_LAYER_TERRAIN),
+            Torpedo(LEVEL_SPEED),
+            Mesh2d(handles.torpedo_body_mesh.clone()),
+            MeshMaterial2d(handles.torpedo_body_material.clone()),
+            Transform::from_translation(body_center.extend(1.0)),
+            children![(
+                Mesh2d(handles.torpedo_tip_mesh.clone()),
+                MeshMaterial2d(handles.torpedo_tip_material.clone()),
+                Transform::from_xyz(5.0, 0.0, -0.1),
+            )],
+        ))
+        .observe(|ev: On<Collided>, mut commands: Commands| {
+            // TODO: explosion
+            commands.entity(ev.entity).despawn();
+            for entity in &ev.with_entities {
+                commands.entity(*entity).despawn();
+            }
+        });
     commands.run_system_cached_with(add_bubbles, (body_back, 8, 5.0, 2.0));
 }
 
@@ -90,45 +94,6 @@ fn torpedoes(
         }
         if rng.random::<f32>() < TORPEDO_AVG_BUBBLES_PER_SEC * dt {
             commands.run_system_cached_with(add_bubbles, (transform.translation.xy(), 1, 5.0, 2.0));
-        }
-    }
-}
-
-fn torpedo_hit(
-    mut commands: Commands,
-    torpedoes: Query<
-        (Entity, &Transform, &Mesh2d, &Aabb),
-        (With<Torpedo>, Without<Rock>, Without<Enemy>),
-    >,
-    targets: Query<(Entity, &Transform, &Mesh2d, &Aabb), Or<(With<Rock>, With<Enemy>)>>,
-    meshes: Res<Assets<Mesh>>,
-) {
-    for (torpedo, transform, mesh2d, aabb) in torpedoes {
-        let mut hit = false;
-        let mesh = meshes.get(mesh2d.id()).unwrap();
-        let triangles = get_triangles2d(mesh, transform);
-
-        let bounding_rough = Aabb2d {
-            min: aabb.min().xy(),
-            max: aabb.max().xy(),
-        };
-
-        for (entity, target_transform, target_mesh2d, target_aabb) in targets {
-            let target_rough = Aabb2d {
-                min: target_aabb.min().xy(),
-                max: target_aabb.max().xy(),
-            };
-            if bounding_rough.intersects(&target_rough) {
-                let rock_mesh = meshes.get(target_mesh2d.id()).unwrap();
-                let rock_triangles = get_triangles2d(rock_mesh, target_transform);
-                if triangles2d_overlap(&triangles, &rock_triangles) {
-                    hit = true;
-                    commands.entity(entity).despawn();
-                }
-            }
-        }
-        if hit {
-            commands.entity(torpedo).despawn();
         }
     }
 }

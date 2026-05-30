@@ -5,7 +5,10 @@ use bevy::{
     sprite_render::{AlphaMode2d, Material2d, Material2dPlugin},
 };
 
-use crate::constants::LEVEL_SPEED;
+use crate::{
+    colliders::{COLLIDE_LAYER_SURFACE, COLLIDE_LAYER_TERRAIN, CollideLayer},
+    constants::LEVEL_SPEED,
+};
 
 pub fn plugin(app: &mut App) {
     app.add_plugins(Material2dPlugin::<SurfaceMaterial>::default())
@@ -120,6 +123,7 @@ fn load(
                     commands.spawn((
                         Sidescroll,
                         Surface,
+                        CollideLayer(COLLIDE_LAYER_SURFACE),
                         Mesh2d(handles.rectangle_mesh.clone()),
                         MeshMaterial2d(handles.surface_material.clone()),
                         Transform::from_xyz(translate_x, translate_y + 16.0, 0.0)
@@ -131,6 +135,7 @@ fn load(
                         commands.spawn((
                             Sidescroll,
                             Rock,
+                            CollideLayer(COLLIDE_LAYER_TERRAIN),
                             Mesh2d(handles.triangle_lr_mesh.clone()),
                             MeshMaterial2d(handles.rock_material.clone()),
                             Transform::from_xyz(translate_x, translate_y, 0.0)
@@ -141,6 +146,7 @@ fn load(
                         commands.spawn((
                             Sidescroll,
                             Rock,
+                            CollideLayer(COLLIDE_LAYER_TERRAIN),
                             Mesh2d(handles.triangle_ll_mesh.clone()),
                             MeshMaterial2d(handles.rock_material.clone()),
                             Transform::from_xyz(translate_x, translate_y, 0.0)
@@ -152,6 +158,7 @@ fn load(
                 commands.spawn((
                     Sidescroll,
                     Rock,
+                    CollideLayer(COLLIDE_LAYER_TERRAIN),
                     Mesh2d(handles.rectangle_mesh.clone()),
                     MeshMaterial2d(handles.rock_material.clone()),
                     Transform::from_xyz(translate_x, translate_y, 0.0)

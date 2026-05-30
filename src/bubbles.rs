@@ -2,6 +2,7 @@ use bevy::prelude::*;
 use rand::RngExt;
 
 use crate::{
+    colliders::{COLLIDE_LAYER_TERRAIN, Collided, Collider},
     level::{Sidescroll, Surface},
     random::RandomSource,
 };
@@ -44,13 +45,18 @@ pub fn add_bubbles(
 
     for _ in 0..count {
         let spawn_pos = pos + circle.sample_interior(&mut rng);
-        commands.spawn((
-            Sidescroll,
-            Bubble(size),
-            Mesh2d(handles.mesh.clone()),
-            MeshMaterial2d(handles.color.clone()),
-            Transform::from_xyz(spawn_pos.x, spawn_pos.y, 0.0).with_scale(Vec3::splat(size)),
-        ));
+        commands
+            .spawn((
+                Sidescroll,
+                Bubble(size),
+                Collider(COLLIDE_LAYER_TERRAIN),
+                Mesh2d(handles.mesh.clone()),
+                MeshMaterial2d(handles.color.clone()),
+                Transform::from_xyz(spawn_pos.x, spawn_pos.y, 0.0).with_scale(Vec3::splat(size)),
+            ))
+            .observe(|ev: On<Collided>, mut commands: Commands| {
+                commands.entity(ev.entity).despawn();
+            });
     }
 }
 

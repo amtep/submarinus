@@ -2,6 +2,7 @@ use bevy::prelude::*;
 use bevy::window::WindowMode;
 
 mod bubbles;
+mod colliders;
 mod constants;
 mod enemies;
 mod level;
@@ -26,6 +27,7 @@ pub fn app() {
             bubbles::plugin,
             torpedoes::plugin,
             enemies::plugin,
+            colliders::plugin,
         ))
         .add_systems(Startup, setup)
         .run();

@@ -1,22 +1,17 @@
 use std::f32::consts::FRAC_PI_2;
 
-use bevy::{
-    camera::primitives::Aabb,
-    math::bounding::{Aabb2d, IntersectsVolume},
-    prelude::*,
-};
+use bevy::prelude::*;
 
 use crate::{
+    colliders::{COLLIDE_LAYER_ENEMY, COLLIDE_LAYER_TERRAIN, Collided, Collider},
     constants::{LEVEL_SPEED, SHOOT_COOLDOWN_SECS},
-    enemies::Enemy,
-    level::{Rock, Surface},
-    math::{get_triangles2d, triangles2d_overlap},
+    level::Surface,
     torpedoes::launch_torpedo,
 };
 
 pub fn plugin(app: &mut App) {
     app.add_systems(Startup, setup)
-        .add_systems(FixedUpdate, (keys, shoot, collisions, show_lives));
+        .add_systems(FixedUpdate, (keys, shoot, show_lives));
 }
 
 const HORIZONTAL_SPEED: f32 = 128.0;
@@ -55,12 +50,27 @@ fn setup(
     let player_mesh = meshes.add(Capsule2d::new(PLAYER_CAPSULE_RADIUS, PLAYER_INNER_WIDTH));
     let player_material = materials.add(Color::srgba(0.5, 0.5, 0.5, 1.0));
 
-    commands.spawn((
-        Player,
-        Mesh2d(player_mesh.clone()),
-        MeshMaterial2d(player_material.clone()),
-        Transform::from_xyz(-1000.0, 0.0, 0.0).with_rotation(Quat::from_rotation_z(-FRAC_PI_2)),
-    ));
+    commands
+        .spawn((
+            Player,
+            Collider(COLLIDE_LAYER_ENEMY | COLLIDE_LAYER_TERRAIN),
+            Mesh2d(player_mesh.clone()),
+            MeshMaterial2d(player_material.clone()),
+            Transform::from_xyz(-1000.0, 0.0, 0.0).with_rotation(Quat::from_rotation_z(-FRAC_PI_2)),
+        ))
+        .observe(
+            |ev: On<Collided>, mut commands: Commands, mut lives: ResMut<Lives>| {
+                // TODO: hit animation and temporary invulnerability
+                if **lives > 0 {
+                    **lives -= 1;
+                } else {
+                    // TODO: game over
+                }
+                for entity in &ev.with_entities {
+                    commands.entity(*entity).despawn();
+                }
+            },
+        );
 
     commands.insert_resource(ShootCooldown(Timer::from_seconds(
         SHOOT_COOLDOWN_SECS,
@@ -148,47 +158,6 @@ fn shoot(
     if buttons.pressed(KeyCode::Space) {
         cooldown.reset();
         commands.run_system_cached_with(launch_torpedo, transform.translation.xy());
-    }
-}
-
-fn collisions(
-    mut commands: Commands,
-    mut lives: ResMut<Lives>,
-    transform: Single<(&Transform, &Mesh2d, &Aabb), (With<Player>, Without<Rock>, Without<Enemy>)>,
-    dangers: Query<(Entity, &Transform, &Mesh2d, &Aabb), Or<(With<Rock>, With<Enemy>)>>,
-    meshes: Res<Assets<Mesh>>,
-) {
-    let mut hit = false;
-    let (transform, mesh2d, aabb) = transform.into_inner();
-    let mesh = meshes.get(mesh2d.id()).unwrap();
-    let triangles = get_triangles2d(mesh, transform);
-
-    let bounding_rough = Aabb2d {
-        min: aabb.min().xy(),
-        max: aabb.max().xy(),
-    };
-
-    for (entity, danger_transform, danger_mesh2d, danger_aabb) in dangers {
-        let danger_rough = Aabb2d {
-            min: danger_aabb.min().xy(),
-            max: danger_aabb.max().xy(),
-        };
-        if bounding_rough.intersects(&danger_rough) {
-            let danger_mesh = meshes.get(danger_mesh2d.id()).unwrap();
-            let danger_triangles = get_triangles2d(danger_mesh, danger_transform);
-            if triangles2d_overlap(&triangles, &danger_triangles) {
-                hit = true;
-                commands.entity(entity).despawn();
-            }
-        }
-    }
-
-    if hit {
-        if **lives > 0 {
-            **lives -= 1;
-        } else {
-            // TODO: game over
-        }
     }
 }
 
