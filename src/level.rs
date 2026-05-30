@@ -32,7 +32,7 @@ struct LevelHandles {
 
 /// Marker for entities that should move with the terrain scroll speed
 #[derive(Component, Default, Clone)]
-pub struct Terrain;
+pub struct Sidescroll;
 
 /// Marker for water-air boundary
 #[derive(Component, Default, Clone)]
@@ -118,7 +118,7 @@ fn load(
             if color == COLOR_WATER {
                 if prev_color == COLOR_AIR {
                     commands.spawn((
-                        Terrain,
+                        Sidescroll,
                         Surface,
                         Mesh2d(handles.rectangle_mesh.clone()),
                         MeshMaterial2d(handles.surface_material.clone()),
@@ -129,7 +129,7 @@ fn load(
                 if maybe_next.is_some_and(|c| c == COLOR_ROCK) {
                     if maybe_next_column.is_some_and(|c| c == COLOR_ROCK) {
                         commands.spawn((
-                            Terrain,
+                            Sidescroll,
                             Rock,
                             Mesh2d(handles.triangle_lr_mesh.clone()),
                             MeshMaterial2d(handles.rock_material.clone()),
@@ -139,7 +139,7 @@ fn load(
                     }
                     if maybe_prev_column.is_some_and(|c| c == COLOR_ROCK) {
                         commands.spawn((
-                            Terrain,
+                            Sidescroll,
                             Rock,
                             Mesh2d(handles.triangle_ll_mesh.clone()),
                             MeshMaterial2d(handles.rock_material.clone()),
@@ -150,7 +150,7 @@ fn load(
                 }
             } else if color == COLOR_ROCK {
                 commands.spawn((
-                    Terrain,
+                    Sidescroll,
                     Rock,
                     Mesh2d(handles.rectangle_mesh.clone()),
                     MeshMaterial2d(handles.rock_material.clone()),
@@ -167,7 +167,7 @@ fn load(
 
 fn move_level(
     mut commands: Commands,
-    mut q: Query<(Entity, &mut Transform), With<Terrain>>,
+    mut q: Query<(Entity, &mut Transform), With<Sidescroll>>,
     time: Res<Time<Fixed>>,
 ) {
     for (entity, mut transform) in &mut q {

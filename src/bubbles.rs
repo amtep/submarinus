@@ -2,7 +2,7 @@ use bevy::prelude::*;
 use rand::RngExt;
 
 use crate::{
-    level::{Surface, Terrain},
+    level::{Sidescroll, Surface},
     random::RandomSource,
 };
 
@@ -45,7 +45,7 @@ pub fn add_bubbles(
     for _ in 0..count {
         let spawn_pos = pos + circle.sample_interior(&mut rng);
         commands.spawn((
-            Terrain,
+            Sidescroll,
             Bubble(size),
             Mesh2d(handles.mesh.clone()),
             MeshMaterial2d(handles.color.clone()),

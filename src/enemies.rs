@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 
-use crate::level::Terrain;
+use crate::level::Sidescroll;
 
 pub fn plugin(app: &mut App) {
     app.add_systems(Startup, setup).add_systems(Update, load);
@@ -67,7 +67,7 @@ fn load(
             let color = image.pixel_bytes(UVec3::new(x, y, 0)).unwrap();
             if color == COLOR_SHIP {
                 commands.spawn((
-                    Terrain,
+                    Sidescroll,
                     Enemy,
                     Ship,
                     Mesh2d(handles.ship_mesh.clone()),

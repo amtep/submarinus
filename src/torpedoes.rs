@@ -9,7 +9,7 @@ use crate::{
     bubbles::add_bubbles,
     constants::LEVEL_SPEED,
     enemies::Enemy,
-    level::{Rock, Terrain},
+    level::{Rock, Sidescroll},
     math::{get_triangles2d, triangles2d_overlap},
     random::RandomSource,
 };
@@ -59,7 +59,7 @@ pub fn launch_torpedo(In(tip_pos): In<Vec2>, mut commands: Commands, handles: Re
     body_back.x -= 5.0;
 
     commands.spawn((
-        Terrain,
+        Sidescroll,
         Torpedo(LEVEL_SPEED),
         Mesh2d(handles.torpedo_body_mesh.clone()),
         MeshMaterial2d(handles.torpedo_body_material.clone()),
