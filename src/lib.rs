@@ -1,3 +1,4 @@
+use bevy::dev_tools::fps_overlay::FpsOverlayPlugin;
 use bevy::prelude::*;
 use bevy::window::WindowMode;
 
@@ -21,6 +22,7 @@ pub fn app() {
                 }),
                 ..default()
             }),
+            FpsOverlayPlugin::default(),
             random::plugin,
             player::plugin,
             level::plugin,

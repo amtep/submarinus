@@ -1,10 +1,11 @@
 use bevy::{
     camera::primitives::Aabb,
-    math::bounding::{Aabb2d, IntersectsVolume},
+    math::bounding::{Aabb2d, BoundingVolume, IntersectsVolume},
     prelude::*,
 };
+use throttled_tracing::info_every_n;
 
-use crate::math::{get_triangles2d, triangles2d_overlap};
+use crate::math::{get_triangles2d, quat_to_rot2, triangles2d_overlap};
 
 pub fn plugin(app: &mut App) {
     app.add_systems(Update, collisions);
@@ -39,12 +40,19 @@ fn collisions(
     collide_with: Query<(Entity, &CollideLayer, &Mesh2d, &Transform, &Aabb)>,
     meshes: Res<Assets<Mesh>>,
 ) {
+    let mut comparisons = 0;
+    let mut rough_intersects = 0;
     for (entity1, Collider(layers), mesh1, transform1, aabb1) in colliders {
         let mut collided = Vec::new();
         let rough1 = Aabb2d {
             min: aabb1.min().xy(),
             max: aabb1.max().xy(),
-        };
+        }
+        .transformed_by(
+            transform1.translation.xy(),
+            quat_to_rot2(&transform1.rotation),
+        )
+        .scale_around_center(transform1.scale.xy());
         // TODO: only do this work if a rough collision is detected
         let mesh1 = meshes.get(mesh1.id()).unwrap();
         let triangles1 = get_triangles2d(mesh1, transform1);
@@ -53,11 +61,19 @@ fn collisions(
             if entity1 == entity2 || (layer & layers) == 0 {
                 continue;
             }
+            comparisons += 1;
             let rough2 = Aabb2d {
                 min: aabb2.min().xy(),
                 max: aabb2.max().xy(),
-            };
+            }
+            .transformed_by(
+                transform2.translation.xy(),
+                quat_to_rot2(&transform2.rotation),
+            )
+            .scale_around_center(transform2.scale.xy());
+            info_once!("{rough1:?}, {rough2:?}");
             if rough1.intersects(&rough2) {
+                rough_intersects += 1;
                 // TODO: cache triangles2 maybe
                 let mesh2 = meshes.get(mesh2.id()).unwrap();
                 let triangles2 = get_triangles2d(mesh2, transform2);
@@ -74,4 +90,5 @@ fn collisions(
             });
         }
     }
+    info_every_n!(64, "comparisons {comparisons}, rough {rough_intersects}");
 }
