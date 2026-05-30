@@ -88,7 +88,7 @@ fn torpedoes(
         if **speed != new_speed {
             **speed = new_speed;
         }
-        if rng.0.random::<f32>() < TORPEDO_AVG_BUBBLES_PER_SEC * dt {
+        if rng.random::<f32>() < TORPEDO_AVG_BUBBLES_PER_SEC * dt {
             commands.run_system_cached_with(add_bubbles, (transform.translation.xy(), 1, 5.0, 2.0));
         }
     }

@@ -1,20 +1,27 @@
-use bevy::prelude::*;
+use std::f32::consts::FRAC_PI_2;
 
-use crate::level::Sidescroll;
+use bevy::prelude::*;
+use rand::RngExt;
+
+use crate::{level::Sidescroll, random::RandomSource};
 
 pub fn plugin(app: &mut App) {
-    app.add_systems(Startup, setup).add_systems(Update, load);
+    app.add_systems(Startup, setup)
+        .add_systems(Update, (load, ships_drop_bombs, bombs_fall));
 }
 
 const ENEMIES_PATH: &str = "enemies.png";
-
+const SHIP_AVG_BOMBS_PER_SEC: f32 = 0.05;
+const BOMB_DROP_SPEED: f32 = 20.0;
 const COLOR_SHIP: [u8; 4] = [0xbe, 0x0b, 0x19, 0xff];
 
 #[derive(Resource)]
 struct EnemiesHandles {
     enemies: Handle<Image>,
     ship_mesh: Handle<Mesh>,
+    bomb_mesh: Handle<Mesh>,
     ship_material: Handle<ColorMaterial>,
+    bomb_material: Handle<ColorMaterial>,
 }
 
 #[derive(Component)]
@@ -22,6 +29,11 @@ pub struct Enemy;
 
 #[derive(Component)]
 struct Ship;
+
+/// A marker component for a depth bomb dropped from a [`Ship`].
+/// It contains the y value at which it should explode.
+#[derive(Component)]
+struct DepthBomb(f32);
 
 fn setup(
     mut commands: Commands,
@@ -39,11 +51,15 @@ fn setup(
         .unwrap(),
     );
     let ship_material = materials.add(Color::srgb_u8(0xbe, 0x0b, 0x19));
+    let bomb_mesh = meshes.add(Capsule2d::new(0.5, 0.5));
+    let bomb_material = materials.add(Color::srgb(0.7, 0.7, 0.7));
     let enemies = asset_server.load(ENEMIES_PATH);
     commands.insert_resource(EnemiesHandles {
         enemies,
         ship_mesh,
+        bomb_mesh,
         ship_material,
+        bomb_material,
     });
 }
 
@@ -80,4 +96,47 @@ fn load(
     }
 
     *done = true;
+}
+
+fn ships_drop_bombs(
+    mut commands: Commands,
+    ships: Query<&Transform, With<Ship>>,
+    time: Res<Time<Fixed>>,
+    handles: Res<EnemiesHandles>,
+    mut rng: ResMut<RandomSource>,
+) {
+    let dt = time.delta_secs();
+
+    for transform in ships {
+        if rng.random::<f32>() < SHIP_AVG_BOMBS_PER_SEC * dt {
+            // TODO: make this sensitive to terrain
+            let explode_depth = rng.random_range(-1000.0..1000.0);
+            commands.spawn((
+                Enemy,
+                DepthBomb(explode_depth),
+                Sidescroll,
+                Mesh2d(handles.bomb_mesh.clone()),
+                MeshMaterial2d(handles.bomb_material.clone()),
+                Transform::from_xyz(transform.translation.x, transform.translation.y, 0.1)
+                    .with_scale(vec3(10.0, 10.0, 1.0))
+                    .with_rotation(Quat::from_rotation_z(FRAC_PI_2 + 0.2)),
+            ));
+        }
+    }
+}
+
+fn bombs_fall(
+    mut commands: Commands,
+    mut bombs: Populated<(Entity, &DepthBomb, &mut Transform), With<DepthBomb>>,
+    time: Res<Time<Fixed>>,
+) {
+    let dt = time.delta_secs();
+
+    for (entity, DepthBomb(explode_depth), mut transform) in &mut bombs {
+        transform.translation.y -= BOMB_DROP_SPEED * dt;
+        if transform.translation.y < *explode_depth {
+            // TODO: explode
+            commands.entity(entity).despawn();
+        }
+    }
 }
